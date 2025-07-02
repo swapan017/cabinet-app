@@ -1,8 +1,300 @@
 <!DOCTYPE html>
 <html>
-<head><title>Cabinet File Tracker - Rebuilt Version</title></head>
+<head>
+  <title>Cabinet File Tracker - Rebuilt Version</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    input, select, button { padding: 8px; margin: 5px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    .section { margin-top: 30px; }
+    .hidden { display: none; }
+    nav { background-color: #333; color: white; padding: 10px; }
+    nav a { color: white; margin: 0 15px; text-decoration: none; font-weight: bold; }
+  </style>
+  <script>
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.add('hidden'));
+      const section = document.getElementById(id);
+      if (section) section.classList.remove('hidden');
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const nav = document.createElement("nav");
+      nav.id = "mainNav";
+      document.body.insertBefore(nav, document.body.firstChild);
+
+      const sections = [
+        { label: "Add File", id: "addFileSection" },
+        { label: "Create Cabinet", id: "createCabinetSection" },
+        { label: "Cabinet List", id: "cabinetListSection" },
+        { label: "Out File", id: "outFileSection" },
+        { label: "Search", id: "searchSection" },
+        { label: "Pending IN Files", id: "pendingApprovalSection" },
+        { label: "Pending OUT Files", id: "pendingOutApprovalSection" },
+      ];
+
+      sections.forEach(sec => {
+        const link = document.createElement("a");
+        link.href = "#";
+        link.textContent = sec.label;
+        link.onclick = () => {
+          if (sec.id.includes("Pending") && typeof currentUser !== 'undefined' && currentUser !== 'admin') return;
+          showSection(sec.id);
+          if (typeof renderPendingApprovals === 'function' && sec.id === 'pendingApprovalSection') renderPendingApprovals();
+          if (typeof renderPendingOutApprovals === 'function' && sec.id === 'pendingOutApprovalSection') renderPendingOutApprovals();
+          if (typeof updateCabinetTable === 'function' && sec.id === 'cabinetListSection') updateCabinetTable();
+        };
+        nav.appendChild(link);
+      });
+
+      const loginLink = document.createElement("a");
+      loginLink.href = "#";
+      loginLink.id = "loginLink";
+      loginLink.textContent = "Login";
+      loginLink.onclick = () => showSection("loginSection");
+      nav.appendChild(loginLink);
+    });
+  </script>
+</head>
 <body>
-<!-- Your full HTML content will go here -->
-<p>This is a placeholder. Real content should come from the canvas.</p>
+  <script>
+    let currentUser = 'admin'; // Temporary for testing
+
+    function renderPendingApprovals() {
+      console.log('Pending IN approvals rendering...');
+    }
+
+    function renderPendingOutApprovals() {
+      console.log('Pending OUT approvals rendering...');
+    }
+
+    function updateCabinetTable() {
+      console.log('Cabinet table updating...');
+    }
+  </script>
+
+  <div id="addFileSection" class="section hidden">
+  <h2>Add File</h2>
+  <form id="addFileForm">
+    <input type="text" placeholder="Customer Name" required><br>
+    <input type="text" placeholder="Mobile Number" required><br>
+    <select required><option value="">Select Cabinet</option></select><br>
+    <select required><option value="">Select Step</option></select><br>
+    <input type="number" placeholder="Serial" required><br>
+    <button type="submit">Request File IN</button>
+  </form>
+</div>
+
+  <div id="createCabinetSection" class="section hidden">
+  <h2>Create Cabinet</h2>
+  <form id="createCabinetForm">
+    <input type="text" placeholder="Cabinet Name" required><br>
+    <input type="number" placeholder="Number of Steps" required><br>
+    <input type="number" placeholder="Serials per Step" required><br>
+    <button type="submit">Create</button>
+  </form>
+</div>
+
+  <div id="cabinetListSection" class="section hidden">
+  <h2>Cabinet List</h2>
+  <table>
+    <thead>
+      <tr><th>Cabinet Name</th><th>Steps</th><th>Serials/Step</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="cabinetListTable"></tbody>
+  </table>
+</div>
+
+  <div id="outFileSection" class="section hidden">
+  <h2>Out File</h2>
+  <input type="text" placeholder="Customer Name or Mobile"><br>
+  <button>Search</button>
+  <div id="outFileInfo"></div>
+  <button>Request File OUT</button>
+</div>
+
+  <div id="searchSection" class="section hidden">
+  <h2>Search Files</h2>
+  <input type="text" placeholder="Search by name or mobile">
+  <button>Search</button>
+  <div id="searchResults"></div>
+</div>
+
+  <div id="pendingApprovalSection" class="section hidden">
+  <h2>Pending IN Files</h2>
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Mobile</th><th>Cabinet</th><th>Step</th><th>Serial</th><th>Action</th></tr>
+    </thead>
+    <tbody id="pendingINTable"></tbody>
+  </table>
+</div>
+
+  <div id="pendingOutApprovalSection" class="section hidden">
+  <h2>Pending OUT Files</h2>
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Mobile</th><th>Cabinet</th><th>Step</th><th>Serial</th><th>Action</th></tr>
+    </thead>
+    <tbody id="pendingOUTTable"></tbody>
+  </table>
+</div>
+
+  <div id="loginSection" class="section hidden">
+  <h2>Login</h2>
+  <form id="loginForm">
+    <input type="text" placeholder="Username" required><br>
+    <input type="password" placeholder="Password" required><br>
+    <button type="submit">Login</button>
+  </form>
+</div>
+<script>
+// LocalStorage helpers
+function getCabinets() {
+  return JSON.parse(localStorage.getItem("cabinets") || "[]");
+}
+function saveCabinets(data) {
+  localStorage.setItem("cabinets", JSON.stringify(data));
+}
+function getFiles() {
+  return JSON.parse(localStorage.getItem("files") || "[]");
+}
+function saveFiles(data) {
+  localStorage.setItem("files", JSON.stringify(data));
+}
+
+// Create Cabinet handler
+const createCabinetForm = document.getElementById("createCabinetForm");
+createCabinetForm.onsubmit = function (e) {
+  e.preventDefault();
+  const name = e.target[0].value;
+  const steps = parseInt(e.target[1].value);
+  const serials = parseInt(e.target[2].value);
+  const cabinets = getCabinets();
+  cabinets.push({ name, steps, serials });
+  saveCabinets(cabinets);
+  alert("Cabinet created successfully");
+  e.target.reset();
+  updateCabinetTable();
+};
+
+function updateCabinetTable() {
+  const table = document.getElementById("cabinetListTable");
+  table.innerHTML = "";
+  getCabinets().forEach((cab, i) => {
+    const row = `<tr><td>${cab.name}</td><td>${cab.steps}</td><td>${cab.serials}</td><td></td></tr>`;
+    table.innerHTML += row;
+  });
+}
+
+// Add File handler
+const addFileForm = document.getElementById("addFileForm");
+addFileForm.onsubmit = function (e) {
+  e.preventDefault();
+  const name = e.target[0].value;
+  const mobile = e.target[1].value;
+  const cabinet = e.target[2].value;
+  const step = e.target[3].value;
+  const serial = e.target[4].value;
+  const files = getFiles();
+  files.push({ name, mobile, cabinet, step, serial, status: "Pending" });
+  saveFiles(files);
+  alert("File added to pending approvals.");
+  e.target.reset();
+  renderPendingApprovals();
+};
+
+function renderPendingApprovals() {
+  const tbody = document.getElementById("pendingINTable");
+  tbody.innerHTML = "";
+  getFiles().forEach((file, i) => {
+    if (file.status === "Pending") {
+      const row = `<tr><td>${file.name}</td><td>${file.mobile}</td><td>${file.cabinet}</td><td>${file.step}</td><td>${file.serial}</td><td><button onclick="approveFile(${i})">Approve</button></td></tr>`;
+      tbody.innerHTML += row;
+    }
+  });
+}
+
+function approveFile(index) {
+  const files = getFiles();
+  files[index].status = "Approved";
+  saveFiles(files);
+  alert("File approved");
+  renderPendingApprovals();
+}
+// Load Cabinet & Step Options
+function loadCabinetAndStepOptions() {
+  const cabinetSelect = document.querySelector("#addFileForm select:nth-of-type(1)");
+  const stepSelect = document.querySelector("#addFileForm select:nth-of-type(2)");
+  cabinetSelect.innerHTML = '<option value="">Select Cabinet</option>';
+  stepSelect.innerHTML = '<option value="">Select Step</option>';
+  getCabinets().forEach(cab => {
+    const opt = document.createElement("option");
+    opt.value = cab.name;
+    opt.textContent = cab.name;
+    cabinetSelect.appendChild(opt);
+  });
+  cabinetSelect.onchange = () => {
+    stepSelect.innerHTML = '<option value="">Select Step</option>';
+    const selectedCab = getCabinets().find(c => c.name === cabinetSelect.value);
+    if (selectedCab) {
+      for (let i = 1; i <= selectedCab.steps; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = "Step " + i;
+        stepSelect.appendChild(opt);
+      }
+    }
+  };
+}
+document.addEventListener("DOMContentLoaded", loadCabinetAndStepOptions);
+
+// OUT File Search
+document.querySelector("#outFileSection button:nth-of-type(1)").onclick = function () {
+  const input = document.querySelector("#outFileSection input").value.trim().toLowerCase();
+  const match = getFiles().find(f => f.name.toLowerCase() === input || f.mobile === input);
+  const info = document.getElementById("outFileInfo");
+  if (match && match.status === "Approved") {
+    info.innerHTML = `<p><strong>File found:</strong> ${match.name}, Cabinet: ${match.cabinet}, Step: ${match.step}, Serial: ${match.serial}</p>`;
+    info.setAttribute("data-index", getFiles().indexOf(match));
+  } else {
+    info.textContent = "File not found or not approved yet.";
+  }
+};
+
+// OUT File Request
+document.querySelector("#outFileSection button:nth-of-type(2)").onclick = function () {
+  const idx = document.getElementById("outFileInfo").getAttribute("data-index");
+  if (idx !== null) {
+    const files = getFiles();
+    if (files[idx].status === "Approved") {
+      files[idx].status = "Out-Pending";
+      saveFiles(files);
+      alert("Out Request sent.");
+    }
+  }
+};
+
+// Render Pending OUT Files
+function renderPendingOutApprovals() {
+  const tbody = document.getElementById("pendingOUTTable");
+  tbody.innerHTML = "";
+  getFiles().forEach((file, i) => {
+    if (file.status === "Out-Pending") {
+      const row = `<tr><td>${file.name}</td><td>${file.mobile}</td><td>${file.cabinet}</td><td>${file.step}</td><td>${file.serial}</td><td><button onclick="approveOutFile(${i})">Approve OUT</button></td></tr>`;
+      tbody.innerHTML += row;
+    }
+  });
+}
+function approveOutFile(index) {
+  const files = getFiles();
+  files[index].status = "Out";
+  saveFiles(files);
+  alert("File OUT approved");
+  renderPendingOutApprovals();
+}
+</script>
 </body>
 </html>
